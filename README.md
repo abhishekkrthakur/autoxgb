@@ -1,4 +1,4 @@
-# autoxgb
+# AutoXGB
 
 XGBoost + Optuna:  no brainer
 
