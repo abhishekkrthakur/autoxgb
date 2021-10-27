@@ -1,11 +1,13 @@
+from typing import List, Optional
+
 from pydantic import BaseModel
-from typing import List
 
 from .enums import ProblemType
 
 
 class ModelConfig(BaseModel):
     train_filename: str
+    test_filename: Optional[str] = None
     id_column: str
     target_cols: List[str]
     problem_type: ProblemType
@@ -16,4 +18,3 @@ class ModelConfig(BaseModel):
     seed: int
     version: str
     categorical_features: List[str]
-    model_identifier: str

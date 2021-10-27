@@ -15,7 +15,7 @@ def train_autoxgb_command_factory(args):
         args.num_folds,
         args.use_gpu,
         args.seed,
-        args.project_name,
+        args.test_filename,
     )
 
 
@@ -23,8 +23,8 @@ class TrainAutoXGBCommand(BaseCommand):
     @staticmethod
     def register_subcommand(parser: ArgumentParser):
         _parser = parser.add_parser("train", help="Train a new model using AutoXGB")
-        _parser.add_argument("--project_name", help="Project name", required=True, type=str)
         _parser.add_argument("--train_filename", help="Path to training file", required=True, type=str)
+        _parser.add_argument("--test_filename", help="Path to test file", required=False, type=str, default=None)
         _parser.add_argument("--output_dir", help="Path to output directory", required=True, type=str)
         _parser.add_argument("--problem_type", help="Problem type", required=False, type=str, default="classification")
         _parser.add_argument("--id_column", help="ID column", required=False, type=str, default="id")
@@ -50,7 +50,7 @@ class TrainAutoXGBCommand(BaseCommand):
         num_folds,
         use_gpu,
         seed,
-        project_name,
+        test_filename,
     ):
         self.train_filename = train_filename
         self.id_column = id_column
@@ -61,7 +61,7 @@ class TrainAutoXGBCommand(BaseCommand):
         self.num_folds = num_folds
         self.use_gpu = use_gpu
         self.seed = seed
-        self.project_name = project_name
+        self.test_filename = test_filename
 
     def execute(self):
         axgb = AutoXGB(
@@ -74,6 +74,6 @@ class TrainAutoXGBCommand(BaseCommand):
             num_folds=self.num_folds,
             use_gpu=self.use_gpu,
             seed=self.seed,
-            name=self.project_name,
+            test_filename=self.test_filename,
         )
         axgb.train()
