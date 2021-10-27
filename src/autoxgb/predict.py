@@ -1,3 +1,4 @@
+import json
 import os
 from dataclasses import dataclass
 from typing import Dict, Union
@@ -6,6 +7,7 @@ import joblib
 import numpy as np
 import pandas as pd
 import xgboost as xgb
+from pydantic import create_model
 
 from .utils import fetch_xgb_model_params
 
@@ -28,6 +30,17 @@ class AutoXGBPredict:
 
         _, self.use_predict_proba, _, _, _ = fetch_xgb_model_params(self.model_config)
 
+    def get_prediction_schema(self):
+        cat_features = self.model_config.categorical_features
+        schema = {"PredictSchema": {}}
+        for cf in cat_features:
+            schema["PredictSchema"][cf] = "str"
+
+        for feat in self.model_config.features:
+            if feat not in cat_features:
+                schema["PredictSchema"][feat] = 10.0
+        return create_model("PredictSchema", **schema["PredictSchema"])
+
     def _predict_df(self, df):
         categorical_features = self.model_config.categorical_features
         final_preds = []
@@ -37,6 +50,9 @@ class AutoXGBPredict:
                 categorical_encoder = self.categorical_encoders[fold]
                 fold_test[categorical_features] = categorical_encoder.transform(fold_test[categorical_features].values)
             test_features = fold_test[self.model_config.features]
+            for col in test_features.columns:
+                if test_features[col].dtype == "object":
+                    test_features[col] = test_features[col].astype(np.int64)
             if self.use_predict_proba:
                 test_preds = self.models[fold].predict_proba(test_features)
             else:
@@ -51,8 +67,11 @@ class AutoXGBPredict:
         return final_preds
 
     def predict_single(self, sample: Dict[str, Union[str, int, float]] = None, fast_predict: bool = True):
-        sample_df = pd.DataFrame(sample)
-        _ = self._predict_df(sample_df)
+        sample = json.loads(sample)
+        sample_df = pd.DataFrame.from_dict(sample, orient="index").T
+        preds = self._predict_df(sample_df)
+        preds = preds.to_dict(orient="records")[0]
+        return preds
 
     def predict_file(self, test_filename: str, output_dir: str):
         test_df = pd.read_csv(test_filename)

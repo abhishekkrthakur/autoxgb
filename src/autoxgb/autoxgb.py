@@ -142,7 +142,7 @@ class AutoXGB:
             if self.test_filename is not None:
                 test_fold = test_df.copy(deep=True)
             if len(categorical_features) > 0:
-                ord_encoder = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-999)
+                ord_encoder = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=np.nan)
                 fold_train[categorical_features] = ord_encoder.fit_transform(fold_train[categorical_features].values)
                 fold_valid[categorical_features] = ord_encoder.transform(fold_valid[categorical_features].values)
                 if self.test_filename is not None:

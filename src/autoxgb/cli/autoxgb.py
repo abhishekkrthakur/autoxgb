@@ -2,6 +2,7 @@ import argparse
 
 from .. import __version__
 from .predict import PredictAutoXGBCommand
+from .serve import ServeAutoXGBCommand
 from .train import TrainAutoXGBCommand
 
 
@@ -16,6 +17,7 @@ def main():
     commands_parser = parser.add_subparsers(help="commands")
     TrainAutoXGBCommand.register_subcommand(commands_parser)
     PredictAutoXGBCommand.register_subcommand(commands_parser)
+    ServeAutoXGBCommand.register_subcommand(commands_parser)
 
     args = parser.parse_args()
 
