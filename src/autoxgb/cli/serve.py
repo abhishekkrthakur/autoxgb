@@ -35,7 +35,6 @@ class ServeAutoXGBCommand(BaseCommand):
             "autoxgb.api:app",
             host=self.host,
             port=self.port,
-            reload=self.debug,
             debug=self.debug,
             workers=self.workers,
         )

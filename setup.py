@@ -9,6 +9,7 @@ INSTALL_REQUIRES = [
     "loguru==0.5.3",
     "numpy==1.21.3",
     "optuna==2.10.0",
+    "pyarrow==6.0.0",
     "pydantic==1.8.2",
     "joblib==1.1.0",
     "pandas==1.3.4",
