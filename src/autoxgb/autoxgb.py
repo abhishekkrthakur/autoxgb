@@ -27,6 +27,8 @@ class AutoXGB:
     use_gpu: Optional[bool] = False
     num_folds: Optional[int] = 5
     seed: Optional[int] = 42
+    num_trials: Optional[int] = 100
+    time_limit: Optional[int] = None
 
     def __post_init__(self):
         self._version = __version__
@@ -184,6 +186,8 @@ class AutoXGB:
         model_config["num_folds"] = self.num_folds
         model_config["seed"] = self.seed
         model_config["version"] = self._version
+        model_config["num_trials"] = self.num_trials
+        model_config["time_limit"] = self.time_limit
 
         self.model_config = ModelConfig(**model_config)
         logger.info(f"Model config: {self.model_config}")
@@ -198,8 +202,6 @@ class AutoXGB:
     def train(self):
         self._process_data()
         best_params = train_model(self.model_config)
-        print("*****")
-        print(best_params)
         logger.info("Training complete")
         self.predict(best_params)
 

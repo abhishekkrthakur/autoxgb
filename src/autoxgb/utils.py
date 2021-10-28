@@ -11,6 +11,7 @@ from loguru import logger
 from sklearn import metrics
 
 from .enums import ProblemType
+from .params import get_params
 
 
 def save_valid_predictions(final_valid_predictions, model_config, target_encoder, output_file_name):
@@ -84,13 +85,9 @@ def optimize(
     eval_metric,
     model_config,
 ):
-    learning_rate = trial.suggest_float("learning_rate", 1e-2, 0.25, log=True)
-    reg_lambda = trial.suggest_loguniform("reg_lambda", 1e-8, 100.0)
-    reg_alpha = trial.suggest_loguniform("reg_alpha", 1e-8, 100.0)
-    subsample = trial.suggest_float("subsample", 0.1, 1.0)
-    colsample_bytree = trial.suggest_float("colsample_bytree", 0.1, 1.0)
-    max_depth = trial.suggest_int("max_depth", 1, 7)
-    early_stopping_rounds = trial.suggest_int("early_stopping_rounds", 100, 500)
+    params = get_params(trial, model_config)
+    early_stopping_rounds = params["early_stopping_rounds"]
+    del params["early_stopping_rounds"]
 
     scores = []
 
@@ -105,19 +102,10 @@ def optimize(
 
         # train model
         model = xgb_model(
-            random_state=42,
-            tree_method="gpu_hist",
-            gpu_id=1,
-            predictor="gpu_predictor",
-            n_estimators=7000,
-            learning_rate=learning_rate,
-            reg_lambda=reg_lambda,
-            reg_alpha=reg_alpha,
-            subsample=subsample,
-            colsample_bytree=colsample_bytree,
-            max_depth=max_depth,
+            random_state=model_config.seed,
             eval_metric=eval_metric,
             use_label_encoder=False,
+            **params,
         )
 
         if model_config.problem_type in (ProblemType.multi_column_regression, ProblemType.multi_label_classification):
@@ -129,7 +117,7 @@ def optimize(
                     ytrain[:, idx],
                     early_stopping_rounds=early_stopping_rounds,
                     eval_set=[(xvalid, yvalid[:, idx])],
-                    verbose=1000,
+                    verbose=False,
                 )
                 if model_config.problem_type == ProblemType.multi_column_regression:
                     ypred_temp = _m.predict(xvalid)
@@ -144,7 +132,7 @@ def optimize(
                 ytrain,
                 early_stopping_rounds=early_stopping_rounds,
                 eval_set=[(xvalid, yvalid)],
-                verbose=1000,
+                verbose=False,
             )
 
             if use_predict_proba:
@@ -177,7 +165,7 @@ def train_model(model_config):
         storage=f"sqlite:///{db_path}",
         load_if_exists=True,
     )
-    study.optimize(optimize_func, n_trials=1)
+    study.optimize(optimize_func, n_trials=model_config.num_trials, timeout=model_config.time_limit)
     return study.best_params
 
 
@@ -212,11 +200,7 @@ def predict_model(model_config, best_params):
         yvalid = valid_feather[model_config.target_cols].values
 
         model = xgb_model(
-            random_state=42,
-            tree_method="gpu_hist",
-            gpu_id=1,
-            predictor="gpu_predictor",
-            n_estimators=7000,
+            random_state=model_config.seed,
             eval_metric=eval_metric,
             use_label_encoder=False,
             **best_params,
@@ -233,7 +217,7 @@ def predict_model(model_config, best_params):
                     ytrain[:, idx],
                     early_stopping_rounds=early_stopping_rounds,
                     eval_set=[(xvalid, yvalid[:, idx])],
-                    verbose=1000,
+                    verbose=False,
                 )
                 trained_models.append(_m)
                 if model_config.problem_type == ProblemType.multi_column_regression:
@@ -263,7 +247,7 @@ def predict_model(model_config, best_params):
                 ytrain,
                 early_stopping_rounds=early_stopping_rounds,
                 eval_set=[(xvalid, yvalid)],
-                verbose=1000,
+                verbose=False,
             )
 
             joblib.dump(

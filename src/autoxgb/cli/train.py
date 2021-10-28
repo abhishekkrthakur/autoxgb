@@ -16,6 +16,7 @@ def train_autoxgb_command_factory(args):
         args.use_gpu,
         args.seed,
         args.test_filename,
+        args.time_limit,
     )
 
 
@@ -33,10 +34,11 @@ class TrainAutoXGBCommand(BaseCommand):
         _parser.add_argument(
             "--features", help="Features to use, separated by ';'", required=False, type=str, default=None
         )
-        _parser.add_argument(
-            "--use_gpu", help="Whether to use GPU for training", required=False, type=bool, default=False
-        )
+        _parser.add_argument("--use_gpu", help="Whether to use GPU for training", action="store_true", required=False)
         _parser.add_argument("--seed", help="Random seed", required=False, type=int, default=42)
+        _parser.add_argument(
+            "--time_limit", help="Time limit for optimization", required=False, type=int, default=None
+        )
         _parser.set_defaults(func=train_autoxgb_command_factory)
 
     def __init__(
@@ -51,6 +53,7 @@ class TrainAutoXGBCommand(BaseCommand):
         use_gpu,
         seed,
         test_filename,
+        time_limit,
     ):
         self.train_filename = train_filename
         self.id_column = id_column
@@ -62,6 +65,7 @@ class TrainAutoXGBCommand(BaseCommand):
         self.use_gpu = use_gpu
         self.seed = seed
         self.test_filename = test_filename
+        self.time_limit = time_limit
 
     def execute(self):
         axgb = AutoXGB(
@@ -75,5 +79,6 @@ class TrainAutoXGBCommand(BaseCommand):
             use_gpu=self.use_gpu,
             seed=self.seed,
             test_filename=self.test_filename,
+            time_limit=self.time_limit,
         )
         axgb.train()

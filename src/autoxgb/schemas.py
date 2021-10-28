@@ -18,3 +18,5 @@ class ModelConfig(BaseModel):
     seed: int
     version: str
     categorical_features: List[str]
+    num_trials: int
+    time_limit: int
