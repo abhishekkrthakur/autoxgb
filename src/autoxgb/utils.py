@@ -1,3 +1,4 @@
+import copy
 import os
 from functools import partial
 
@@ -51,6 +52,12 @@ def fetch_xgb_model_params(model_config):
         use_predict_proba = True
         direction = "minimize"
         eval_metric = "mlogloss"
+    elif model_config.problem_type == ProblemType.multi_label_classification:
+        metric = metrics.log_loss
+        xgb_model = xgb.XGBClassifier
+        use_predict_proba = True
+        direction = "minimize"
+        eval_metric = "logloss"
     elif model_config.problem_type == ProblemType.single_column_regression:
         metric = partial(metrics.mean_squared_error, squared=False)
         xgb_model = xgb.XGBRegressor
@@ -218,8 +225,9 @@ def predict_model(model_config, best_params):
         if model_config.problem_type in (ProblemType.multi_column_regression, ProblemType.multi_label_classification):
             ypred = []
             test_pred = []
-            models = [model] * len(model_config.target_cols)
-            for idx, _m in enumerate(models):
+            trained_models = []
+            for idx in range(len(model_config.target_cols)):
+                _m = copy.deepcopy(model)
                 _m.fit(
                     xtrain,
                     ytrain[:, idx],
@@ -227,6 +235,7 @@ def predict_model(model_config, best_params):
                     eval_set=[(xvalid, yvalid[:, idx])],
                     verbose=1000,
                 )
+                trained_models.append(_m)
                 if model_config.problem_type == ProblemType.multi_column_regression:
                     ypred_temp = _m.predict(xvalid)
                     if model_config.test_filename is not None:
@@ -241,7 +250,7 @@ def predict_model(model_config, best_params):
             ypred = np.column_stack(ypred)
             test_pred = np.column_stack(test_pred)
             joblib.dump(
-                models,
+                trained_models,
                 os.path.join(
                     model_config.output_dir,
                     f"axgb_model.{fold}",

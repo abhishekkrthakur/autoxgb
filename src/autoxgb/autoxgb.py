@@ -71,6 +71,12 @@ class AutoXGB:
             kf = KFold(n_splits=self.num_folds, shuffle=True, random_state=self.seed)
             for fold, (_, valid_indicies) in enumerate(kf.split(X=train_df, y=y)):
                 train_df.loc[valid_indicies, "kfold"] = fold
+        # TODO: use iterstrat
+        elif problem_type == ProblemType.multi_label_classification:
+            y = train_df[self.target_cols].values
+            kf = KFold(n_splits=self.num_folds, shuffle=True, random_state=self.seed)
+            for fold, (_, valid_indicies) in enumerate(kf.split(X=train_df, y=y)):
+                train_df.loc[valid_indicies, "kfold"] = fold
         else:
             raise Exception("Problem type not supported")
         return train_df
