@@ -6,7 +6,7 @@ import joblib
 import numpy as np
 import pandas as pd
 from loguru import logger
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.preprocessing import LabelEncoder, OrdinalEncoder
 
 from . import __version__
@@ -31,8 +31,14 @@ class AutoXGB:
     def __post_init__(self):
         self._version = __version__
         if os.path.exists(self.output_dir):
-            logger.warning(f"Output directory {self.output_dir} already exists. Will overwrite existing files.")
+            logger.warning(
+                f"Output directory {self.output_dir} already exists. Will delete existing files and folders"
+            )
+            for filename in os.listdir(self.output_dir):
+                os.remove(os.path.join(self.output_dir, filename))
+            os.rmdir(self.output_dir)
         os.makedirs(self.output_dir, exist_ok=True)
+        logger.info(f"Output directory: {self.output_dir}")
 
         if self.target_cols is None:
             logger.warning("No target columns specified. Will default to `target`.")
@@ -60,6 +66,11 @@ class AutoXGB:
             for fold, (_, valid_indicies) in enumerate(kf.split(X=train_df, y=train_df.bins.values)):
                 train_df.loc[valid_indicies, "kfold"] = fold
             train_df = train_df.drop("bins", axis=1)
+        elif problem_type == ProblemType.multi_column_regression:
+            y = train_df[self.target_cols].values
+            kf = KFold(n_splits=self.num_folds, shuffle=True, random_state=self.seed)
+            for fold, (_, valid_indicies) in enumerate(kf.split(X=train_df, y=y)):
+                train_df.loc[valid_indicies, "kfold"] = fold
         else:
             raise Exception("Problem type not supported")
         return train_df
@@ -73,7 +84,6 @@ class AutoXGB:
                     problem_type = ProblemType.multi_class_classification
             else:
                 problem_type = ProblemType.multi_label_classification
-                raise NotImplementedError("Multi-label classification not supported yet.")
 
         elif self.problem_type == "regression":
             if len(self.target_cols) == 1:

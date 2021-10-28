@@ -73,7 +73,7 @@ class AutoXGBPredict:
         preds = preds.to_dict(orient="records")[0]
         return preds
 
-    def predict_file(self, test_filename: str, output_dir: str):
+    def predict_file(self, test_filename: str, out_filename: str):
         test_df = pd.read_csv(test_filename)
         final_preds = self._predict_df(test_df)
-        final_preds.to_csv(os.path.join(output_dir, "predictions.csv"), index=False)
+        final_preds.to_csv(out_filename, index=False)
