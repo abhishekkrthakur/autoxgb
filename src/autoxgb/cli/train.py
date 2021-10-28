@@ -27,7 +27,7 @@ class TrainAutoXGBCommand(BaseCommand):
         _parser.add_argument("--train_filename", help="Path to training file", required=True, type=str)
         _parser.add_argument("--test_filename", help="Path to test file", required=False, type=str, default=None)
         _parser.add_argument("--output_dir", help="Path to output directory", required=True, type=str)
-        _parser.add_argument("--problem_type", help="Problem type", required=False, type=str, default="classification")
+        _parser.add_argument("--problem_type", help="Problem type", required=True, type=str)
         _parser.add_argument("--id_column", help="ID column", required=False, type=str, default="id")
         _parser.add_argument("--target", help="Target column", required=False, type=str, default="target")
         _parser.add_argument("--num_folds", help="Number of folds to use", required=False, type=int, default=5)
