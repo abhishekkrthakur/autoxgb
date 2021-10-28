@@ -8,4 +8,5 @@ XGBoost + Optuna:  no brainer
 
 
 More details coming soon
-Not accepting any PRs currently!
+
+NOTE: Not accepting any PRs currently!
