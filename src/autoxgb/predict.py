@@ -31,6 +31,7 @@ class AutoXGBPredict:
 
         _, self.use_predict_proba, _, _, _ = fetch_xgb_model_params(self.model_config)
 
+    # TODO: improve schema with optional null values
     def get_prediction_schema(self):
         cat_features = self.model_config.categorical_features
         schema = {"PredictSchema": {}}
