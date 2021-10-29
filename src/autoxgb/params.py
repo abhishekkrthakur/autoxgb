@@ -16,9 +16,8 @@ def get_params(trial, model_config):
     else:
         params["tree_method"] = trial.suggest_categorical("tree_method", ["exact", "approx", "hist"])
         params["booster"] = trial.suggest_categorical("booster", ["gbtree", "gblinear"])
-
-    if params["booster"] == "gbtree":
-        params["gamma"] = trial.suggest_float("gamma", 1e-8, 1.0, log=True)
-        params["grow_policy"] = trial.suggest_categorical("grow_policy", ["depthwise", "lossguide"])
+        if params["booster"] == "gbtree":
+            params["gamma"] = trial.suggest_float("gamma", 1e-8, 1.0, log=True)
+            params["grow_policy"] = trial.suggest_categorical("grow_policy", ["depthwise", "lossguide"])
 
     return params
