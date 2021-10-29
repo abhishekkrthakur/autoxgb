@@ -27,7 +27,7 @@ class AutoXGB:
     use_gpu: Optional[bool] = False
     num_folds: Optional[int] = 5
     seed: Optional[int] = 42
-    num_trials: Optional[int] = 100
+    num_trials: Optional[int] = 1000
     time_limit: Optional[int] = None
 
     def __post_init__(self):
