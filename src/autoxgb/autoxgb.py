@@ -29,6 +29,7 @@ class AutoXGB:
     seed: Optional[int] = 42
     num_trials: Optional[int] = 1000
     time_limit: Optional[int] = None
+    fast: Optional[bool] = False
 
     def __post_init__(self):
         self._version = __version__
@@ -190,6 +191,7 @@ class AutoXGB:
         model_config["version"] = self._version
         model_config["num_trials"] = self.num_trials
         model_config["time_limit"] = self.time_limit
+        model_config["fast"] = self.fast
 
         self.model_config = ModelConfig(**model_config)
         logger.info(f"Model config: {self.model_config}")

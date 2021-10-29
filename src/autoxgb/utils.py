@@ -185,6 +185,8 @@ def optimize(
         # calculate metric
         metric_dict = metrics.calculate(yvalid, ypred)
         scores.append(metric_dict)
+        if model_config.fast is True:
+            break
 
     mean_metrics = dict_mean(scores)
     logger.info(f"Metrics: {mean_metrics}")

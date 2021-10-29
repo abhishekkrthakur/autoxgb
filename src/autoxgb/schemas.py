@@ -20,3 +20,4 @@ class ModelConfig(BaseModel):
     categorical_features: List[str]
     num_trials: int
     time_limit: Optional[int] = None
+    fast: bool
