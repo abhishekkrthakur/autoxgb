@@ -6,6 +6,7 @@ with open("README.md") as f:
 
 INSTALL_REQUIRES = [
     "fastapi==0.70.0",
+    "loguru==0.5.3",
     "numpy==1.21.3",
     "optuna==2.10.0",
     "pyarrow==6.0.0",

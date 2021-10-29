@@ -10,7 +10,7 @@ import xgboost as xgb
 from pydantic import create_model
 
 from .enums import ProblemType
-from .utils import fetch_xgb_model_params
+from .utils import fetch_xgb_model_params, reduce_memory_usage
 
 
 xgb.set_config(verbosity=0)
@@ -29,7 +29,7 @@ class AutoXGBPredict:
             model_ = joblib.load(os.path.join(self.model_path, f"axgb_model.{fold}"))
             self.models.append(model_)
 
-        _, self.use_predict_proba, _, _, _ = fetch_xgb_model_params(self.model_config)
+        _, self.use_predict_proba, _, _ = fetch_xgb_model_params(self.model_config)
 
     # TODO: improve schema with optional null values
     def get_prediction_schema(self):
@@ -98,5 +98,6 @@ class AutoXGBPredict:
 
     def predict_file(self, test_filename: str, out_filename: str):
         test_df = pd.read_csv(test_filename)
+        test_df = reduce_memory_usage(test_df)
         final_preds = self._predict_df(test_df)
         final_preds.to_csv(out_filename, index=False)

@@ -7,14 +7,57 @@ import numpy as np
 import optuna
 import pandas as pd
 import xgboost as xgb
-from sklearn import metrics
 
 from .enums import ProblemType
 from .logger import logger
+from .metrics import Metrics
 from .params import get_params
 
 
 optuna.logging.set_verbosity(optuna.logging.INFO)
+
+
+def reduce_memory_usage(df, verbose=True):
+    # NOTE: Original author of this function is unknown
+    # if you know the *original author*, please let me know.
+    numerics = ["int8", "int16", "int32", "int64", "float16", "float32", "float64"]
+    start_mem = df.memory_usage().sum() / 1024 ** 2
+    for col in df.columns:
+        col_type = df[col].dtypes
+        if col_type in numerics:
+            c_min = df[col].min()
+            c_max = df[col].max()
+            if str(col_type)[:3] == "int":
+                if c_min > np.iinfo(np.int8).min and c_max < np.iinfo(np.int8).max:
+                    df[col] = df[col].astype(np.int8)
+                elif c_min > np.iinfo(np.int16).min and c_max < np.iinfo(np.int16).max:
+                    df[col] = df[col].astype(np.int16)
+                elif c_min > np.iinfo(np.int32).min and c_max < np.iinfo(np.int32).max:
+                    df[col] = df[col].astype(np.int32)
+                elif c_min > np.iinfo(np.int64).min and c_max < np.iinfo(np.int64).max:
+                    df[col] = df[col].astype(np.int64)
+            else:
+                if c_min > np.finfo(np.float16).min and c_max < np.finfo(np.float16).max:
+                    df[col] = df[col].astype(np.float16)
+                elif c_min > np.finfo(np.float32).min and c_max < np.finfo(np.float32).max:
+                    df[col] = df[col].astype(np.float32)
+                else:
+                    df[col] = df[col].astype(np.float64)
+    end_mem = df.memory_usage().sum() / 1024 ** 2
+    if verbose:
+        logger.info(
+            "Mem. usage decreased to {:.2f} Mb ({:.1f}% reduction)".format(
+                end_mem, 100 * (start_mem - end_mem) / start_mem
+            )
+        )
+    return df
+
+
+def dict_mean(dict_list):
+    mean_dict = {}
+    for key in dict_list[0].keys():
+        mean_dict[key] = sum(d[key] for d in dict_list) / len(dict_list)
+    return mean_dict
 
 
 def save_valid_predictions(final_valid_predictions, model_config, target_encoder, output_file_name):
@@ -45,31 +88,26 @@ def save_test_predictions(final_test_predictions, model_config, target_encoder, 
 
 def fetch_xgb_model_params(model_config):
     if model_config.problem_type == ProblemType.binary_classification:
-        metric = metrics.log_loss
         xgb_model = xgb.XGBClassifier
         use_predict_proba = True
         direction = "minimize"
         eval_metric = "logloss"
     elif model_config.problem_type == ProblemType.multi_class_classification:
-        metric = metrics.log_loss
         xgb_model = xgb.XGBClassifier
         use_predict_proba = True
         direction = "minimize"
         eval_metric = "mlogloss"
     elif model_config.problem_type == ProblemType.multi_label_classification:
-        metric = metrics.log_loss
         xgb_model = xgb.XGBClassifier
         use_predict_proba = True
         direction = "minimize"
         eval_metric = "logloss"
     elif model_config.problem_type == ProblemType.single_column_regression:
-        metric = partial(metrics.mean_squared_error, squared=False)
         xgb_model = xgb.XGBRegressor
         use_predict_proba = False
         direction = "minimize"
         eval_metric = "rmse"
     elif model_config.problem_type == ProblemType.multi_column_regression:
-        metric = partial(metrics.mean_squared_error, squared=False)
         xgb_model = xgb.XGBRegressor
         use_predict_proba = False
         direction = "minimize"
@@ -77,13 +115,12 @@ def fetch_xgb_model_params(model_config):
     else:
         raise NotImplementedError
 
-    return xgb_model, use_predict_proba, eval_metric, metric, direction
+    return xgb_model, use_predict_proba, eval_metric, direction
 
 
 def optimize(
     trial,
     xgb_model,
-    metric,
     use_predict_proba,
     eval_metric,
     model_config,
@@ -91,6 +128,8 @@ def optimize(
     params = get_params(trial, model_config)
     early_stopping_rounds = params["early_stopping_rounds"]
     del params["early_stopping_rounds"]
+
+    metrics = Metrics(model_config.problem_type)
 
     scores = []
 
@@ -144,19 +183,20 @@ def optimize(
                 ypred = model.predict(xvalid)
 
         # calculate metric
-        metric_value = metric(yvalid, ypred)
-        scores.append(metric_value)
+        metric_dict = metrics.calculate(yvalid, ypred)
+        scores.append(metric_dict)
 
-    return sum(scores) / len(scores)
+    mean_metrics = dict_mean(scores)
+    logger.info(f"Metrics: {mean_metrics}")
+    return mean_metrics[eval_metric]
 
 
 def train_model(model_config):
-    xgb_model, use_predict_proba, eval_metric, metric, direction = fetch_xgb_model_params(model_config)
+    xgb_model, use_predict_proba, eval_metric, direction = fetch_xgb_model_params(model_config)
 
     optimize_func = partial(
         optimize,
         xgb_model=xgb_model,
-        metric=metric,
         use_predict_proba=use_predict_proba,
         eval_metric=eval_metric,
         model_config=model_config,
@@ -177,7 +217,9 @@ def predict_model(model_config, best_params):
     early_stopping_rounds = best_params["early_stopping_rounds"]
     del best_params["early_stopping_rounds"]
 
-    xgb_model, use_predict_proba, eval_metric, metric, _ = fetch_xgb_model_params(model_config)
+    xgb_model, use_predict_proba, eval_metric, _ = fetch_xgb_model_params(model_config)
+
+    metrics = Metrics(model_config.problem_type)
     scores = []
 
     final_test_predictions = []
@@ -275,9 +317,11 @@ def predict_model(model_config, best_params):
             final_test_predictions.append(test_pred)
 
         # calculate metric
-        metric_value = metric(yvalid, ypred)
-        scores.append(metric_value)
+        metric_dict = metrics.calculate(yvalid, ypred)
+        scores.append(metric_dict)
 
+    mean_metrics = dict_mean(scores)
+    logger.info(f"Metrics: {mean_metrics}")
     save_valid_predictions(final_valid_predictions, model_config, target_encoder, "oof_predictions.csv")
 
     if model_config.test_filename is not None:

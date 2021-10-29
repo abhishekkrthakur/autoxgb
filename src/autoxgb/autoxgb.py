@@ -12,7 +12,7 @@ from . import __version__
 from .enums import ProblemType
 from .logger import logger
 from .schemas import ModelConfig
-from .utils import predict_model, train_model
+from .utils import predict_model, reduce_memory_usage, train_model
 
 
 @dataclass
@@ -111,11 +111,13 @@ class AutoXGB:
     def _process_data(self):
         logger.info("Reading training data")
         train_df = pd.read_csv(self.train_filename)
+        train_df = reduce_memory_usage(train_df)
         problem_type = self._determine_problem_type(train_df)
 
         train_df = self._inject_id_column(train_df)
         if self.test_filename is not None:
             test_df = pd.read_csv(self.test_filename)
+            test_df = reduce_memory_usage(test_df)
             test_df = self._inject_id_column(test_df)
 
         # create folds
