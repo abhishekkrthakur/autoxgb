@@ -19,4 +19,4 @@ class ModelConfig(BaseModel):
     version: str
     categorical_features: List[str]
     num_trials: int
-    time_limit: int
+    time_limit: Optional[int] = None

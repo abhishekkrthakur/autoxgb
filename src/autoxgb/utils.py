@@ -7,11 +7,14 @@ import numpy as np
 import optuna
 import pandas as pd
 import xgboost as xgb
-from loguru import logger
 from sklearn import metrics
 
 from .enums import ProblemType
+from .logger import logger
 from .params import get_params
+
+
+optuna.logging.set_verbosity(optuna.logging.INFO)
 
 
 def save_valid_predictions(final_valid_predictions, model_config, target_encoder, output_file_name):

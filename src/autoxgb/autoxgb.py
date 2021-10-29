@@ -5,12 +5,12 @@ from typing import List, Optional
 import joblib
 import numpy as np
 import pandas as pd
-from loguru import logger
 from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.preprocessing import LabelEncoder, OrdinalEncoder
 
 from . import __version__
 from .enums import ProblemType
+from .logger import logger
 from .schemas import ModelConfig
 from .utils import predict_model, train_model
 
