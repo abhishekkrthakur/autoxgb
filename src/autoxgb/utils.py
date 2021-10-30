@@ -219,6 +219,11 @@ def predict_model(model_config, best_params):
     early_stopping_rounds = best_params["early_stopping_rounds"]
     del best_params["early_stopping_rounds"]
 
+    if model_config.use_gpu is True:
+        best_params["tree_method"] = "gpu_hist"
+        best_params["gpu_id"] = 0
+        best_params["predictor"] = "gpu_predictor"
+
     xgb_model, use_predict_proba, eval_metric, _ = fetch_xgb_model_params(model_config)
 
     metrics = Metrics(model_config.problem_type)
