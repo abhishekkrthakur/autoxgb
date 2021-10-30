@@ -230,6 +230,7 @@ def predict_model(model_config, best_params):
     target_encoder = joblib.load(f"{model_config.output_dir}/axgb.target_encoder")
 
     for fold in range(model_config.num_folds):
+        logger.info(f"Training and predicting for fold {fold}")
         train_feather = pd.read_feather(os.path.join(model_config.output_dir, f"train_fold_{fold}.feather"))
         valid_feather = pd.read_feather(os.path.join(model_config.output_dir, f"valid_fold_{fold}.feather"))
 
@@ -321,6 +322,7 @@ def predict_model(model_config, best_params):
         # calculate metric
         metric_dict = metrics.calculate(yvalid, ypred)
         scores.append(metric_dict)
+        logger.info(f"Fold {fold} done!")
 
     mean_metrics = dict_mean(scores)
     logger.info(f"Metrics: {mean_metrics}")
