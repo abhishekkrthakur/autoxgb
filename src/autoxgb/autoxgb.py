@@ -50,6 +50,11 @@ class AutoXGB:
             self.idx = "id"
 
     def _create_folds(self, train_df, problem_type):
+        if "kfold" in train_df.columns:
+            self.num_folds = len(np.unique(train_df["kfold"]))
+            logger.info("Using `kfold` for folds from training data")
+            return train_df
+
         logger.info("Creating folds")
         train_df["kfold"] = -1
         if problem_type in (ProblemType.binary_classification, ProblemType.multi_class_classification):
