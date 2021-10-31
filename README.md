@@ -6,10 +6,19 @@ XGBoost + Optuna:  no brainer
 - auto tune xgboost using optuna
 - auto serve best xgboot model using fastapi
 
+NOTE: PRs are currently not accepted. If there are issues/problems, please create an issue.
 
+# Usage
 Training a model using AutoXGB is a piece of cake. All you need is some tabular data.
 
+## Parameters
+
 ```python
+
+###############################################################################
+### required parameters
+###############################################################################
+
 # path to training data
 train_filename = "data_samples/binary_classification.csv"
 
@@ -87,7 +96,100 @@ time_limit = 360
 fast = False
 ```
 
+# Python API
 
-More details coming soon
+To train a new model, you can run:
 
-NOTE: Not accepting any PRs currently!
+```python
+from autoxgb import AutoXGB
+
+
+# required parameters:
+train_filename = "data_samples/binary_classification.csv"
+output = "output"
+
+# optional parameters
+test_filename = None
+task = None
+idx = None
+targets = ["income"]
+features = None
+categorical_features = None
+use_gpu = True
+num_folds = 5
+seed = 42
+num_trials = 100
+time_limit = 360
+fast = False
+
+# Now its time to train the model!
+axgb = AutoXGB(
+    train_filename=train_filename,
+    output=output,
+    test_filename=test_filename,
+    task=task,
+    idx=idx,
+    targets=targets,
+    features=features,
+    categorical_features=categorical_features,
+    use_gpu=use_gpu,
+    num_folds=num_folds,
+    seed=seed,
+    num_trials=num_trials,
+    time_limit=time_limit,
+    fast=fast,
+)
+axgb.train()
+```
+
+# CLI
+
+Train the model using the `autoxgb train` command. The parameters are same as above.
+
+```
+autoxgb train \
+ --train_filename datasets/30train.csv \
+ --output outputs/30days \
+ --test_filename datasets/30test.csv \
+ --use_gpu
+```
+
+You can also serve the trained model using the `autoxgb serve` command.
+
+```bash
+autoxgb serve --model_path outputs/mll --host 0.0.0.0 --debug
+```
+
+To know more about a command, run:
+
+    `autoxgb <command> --help` 
+
+```
+autoxgb train --help
+
+
+usage: autoxgb <command> [<args>] train [-h] --train_filename TRAIN_FILENAME [--test_filename TEST_FILENAME] --output
+                                        OUTPUT [--task {classification,regression}] [--idx IDX] [--targets TARGETS]
+                                        [--num_folds NUM_FOLDS] [--features FEATURES] [--use_gpu] [--fast]
+                                        [--seed SEED] [--time_limit TIME_LIMIT]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --train_filename TRAIN_FILENAME
+                        Path to training file
+  --test_filename TEST_FILENAME
+                        Path to test file
+  --output OUTPUT       Path to output directory
+  --task {classification,regression}
+                        User defined task type
+  --idx IDX             ID column
+  --targets TARGETS     Target column(s). If there are multiple targets, separate by ';'
+  --num_folds NUM_FOLDS
+                        Number of folds to use
+  --features FEATURES   Features to use, separated by ';'
+  --use_gpu             Whether to use GPU for training
+  --fast                Whether to use fast mode for tuning params. Only one fold will be used if fast mode is set
+  --seed SEED           Random seed
+  --time_limit TIME_LIMIT
+                        Time limit for optimization
+```
