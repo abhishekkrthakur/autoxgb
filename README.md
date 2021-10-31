@@ -1,5 +1,8 @@
 # AutoXGB
 
+[![PyPI download month](https://img.shields.io/pypi/dm/ansicolortags.svg)](https://pypi.python.org/pypi/autoxgb/)
+
+
 XGBoost + Optuna:  no brainer
 
 - auto train xgboost directly from CSV files
