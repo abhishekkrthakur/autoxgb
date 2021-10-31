@@ -10,6 +10,9 @@ NOTE: PRs are currently not accepted. If there are issues/problems, please creat
 
 # Installation
 
+Install using pip
+
+    pip install autoxgb
 
 
 # Usage
