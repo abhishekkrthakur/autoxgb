@@ -143,7 +143,7 @@ class TrainAutoXGBCommand(BaseCommand):
             train_filename=self.train_filename,
             idx=self.idx,
             targets=self.targets,
-            task=TaskType.from_str(self.task) if self.task is not None else None,
+            task=self.task,
             output=self.output,
             features=self.features,
             num_folds=self.num_folds,

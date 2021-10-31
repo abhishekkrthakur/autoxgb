@@ -9,7 +9,7 @@ from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.preprocessing import LabelEncoder, OrdinalEncoder
 from sklearn.utils.multiclass import type_of_target
 
-from .enums import ProblemType, TaskType
+from .enums import ProblemType
 from .logger import logger
 from .schemas import ModelConfig
 from .utils import predict_model, reduce_memory_usage, train_model
@@ -23,7 +23,7 @@ class AutoXGB:
 
     # optional arguments
     test_filename: Optional[str] = None
-    task: Optional[TaskType] = None
+    task: Optional[str] = None
     idx: Optional[str] = "id"
     targets: Optional[List[str]] = None
     features: Optional[List[str]] = None
