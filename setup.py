@@ -34,5 +34,5 @@ if __name__ == "__main__":
         include_package_data=True,
         install_requires=INSTALL_REQUIRES,
         platforms=["linux", "unix"],
-        python_requires=">3.5.2",
+        python_requires=">=3.6",
     )

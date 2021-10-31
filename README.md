@@ -8,6 +8,10 @@ XGBoost + Optuna:  no brainer
 
 NOTE: PRs are currently not accepted. If there are issues/problems, please create an issue.
 
+# Installation
+
+
+
 # Usage
 Training a model using AutoXGB is a piece of cake. All you need is some tabular data.
 
