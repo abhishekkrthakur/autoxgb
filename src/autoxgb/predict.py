@@ -46,7 +46,7 @@ class AutoXGBPredict:
     def _predict_df(self, df):
         categorical_features = self.model_config.categorical_features
         final_preds = []
-        test_ids = df[self.model_config.id_column].values
+        test_ids = df[self.model_config.idx].values
         for fold in range(self.model_config.num_folds):
             fold_test = df.copy(deep=True)
             if len(categorical_features) > 0:
@@ -85,13 +85,13 @@ class AutoXGBPredict:
             final_preds = pd.DataFrame(final_preds, columns=self.model_config.target_cols)
         else:
             final_preds = pd.DataFrame(final_preds, columns=list(self.target_encoder.classes_))
-        final_preds.insert(loc=0, column=self.model_config.id_column, value=test_ids)
+        final_preds.insert(loc=0, column=self.model_config.idx, value=test_ids)
         return final_preds
 
     def predict_single(self, sample: Dict[str, Union[str, int, float]] = None, fast_predict: bool = True):
         sample = json.loads(sample)
         sample_df = pd.DataFrame.from_dict(sample, orient="index").T
-        sample_df[self.model_config.id_column] = 0
+        sample_df[self.model_config.idx] = 0
         preds = self._predict_df(sample_df)
         preds = preds.to_dict(orient="records")[0]
         return preds

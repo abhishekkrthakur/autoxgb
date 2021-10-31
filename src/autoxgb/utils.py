@@ -63,12 +63,12 @@ def dict_mean(dict_list):
 def save_valid_predictions(final_valid_predictions, model_config, target_encoder, output_file_name):
     final_valid_predictions = pd.DataFrame.from_dict(final_valid_predictions, orient="index").reset_index()
     if target_encoder is None:
-        final_valid_predictions.columns = [model_config.id_column] + model_config.target_cols
+        final_valid_predictions.columns = [model_config.idx] + model_config.targets
     else:
-        final_valid_predictions.columns = [model_config.id_column] + list(target_encoder.classes_)
+        final_valid_predictions.columns = [model_config.idx] + list(target_encoder.classes_)
 
     final_valid_predictions.to_csv(
-        os.path.join(model_config.output_dir, output_file_name),
+        os.path.join(model_config.output, output_file_name),
         index=False,
     )
 
@@ -76,12 +76,12 @@ def save_valid_predictions(final_valid_predictions, model_config, target_encoder
 def save_test_predictions(final_test_predictions, model_config, target_encoder, test_ids, output_file_name):
     final_test_predictions = np.mean(final_test_predictions, axis=0)
     if target_encoder is None:
-        final_test_predictions = pd.DataFrame(final_test_predictions, columns=model_config.target_cols)
+        final_test_predictions = pd.DataFrame(final_test_predictions, columns=model_config.targets)
     else:
         final_test_predictions = pd.DataFrame(final_test_predictions, columns=list(target_encoder.classes_))
-    final_test_predictions.insert(loc=0, column=model_config.id_column, value=test_ids)
+    final_test_predictions.insert(loc=0, column=model_config.idx, value=test_ids)
     final_test_predictions.to_csv(
-        os.path.join(model_config.output_dir, output_file_name),
+        os.path.join(model_config.output, output_file_name),
         index=False,
     )
 
@@ -134,13 +134,13 @@ def optimize(
     scores = []
 
     for fold in range(model_config.num_folds):
-        train_feather = pd.read_feather(os.path.join(model_config.output_dir, f"train_fold_{fold}.feather"))
-        valid_feather = pd.read_feather(os.path.join(model_config.output_dir, f"valid_fold_{fold}.feather"))
+        train_feather = pd.read_feather(os.path.join(model_config.output, f"train_fold_{fold}.feather"))
+        valid_feather = pd.read_feather(os.path.join(model_config.output, f"valid_fold_{fold}.feather"))
         xtrain = train_feather[model_config.features]
         xvalid = valid_feather[model_config.features]
 
-        ytrain = train_feather[model_config.target_cols].values
-        yvalid = valid_feather[model_config.target_cols].values
+        ytrain = train_feather[model_config.targets].values
+        yvalid = valid_feather[model_config.targets].values
 
         # train model
         model = xgb_model(
@@ -152,7 +152,7 @@ def optimize(
 
         if model_config.problem_type in (ProblemType.multi_column_regression, ProblemType.multi_label_classification):
             ypred = []
-            models = [model] * len(model_config.target_cols)
+            models = [model] * len(model_config.targets)
             for idx, _m in enumerate(models):
                 _m.fit(
                     xtrain,
@@ -203,7 +203,7 @@ def train_model(model_config):
         eval_metric=eval_metric,
         model_config=model_config,
     )
-    db_path = os.path.join(model_config.output_dir, "params.db")
+    db_path = os.path.join(model_config.output, "params.db")
     study = optuna.create_study(
         direction=direction,
         study_name="autoxgb",
@@ -232,25 +232,25 @@ def predict_model(model_config, best_params):
     final_test_predictions = []
     final_valid_predictions = {}
 
-    target_encoder = joblib.load(f"{model_config.output_dir}/axgb.target_encoder")
+    target_encoder = joblib.load(f"{model_config.output}/axgb.target_encoder")
 
     for fold in range(model_config.num_folds):
         logger.info(f"Training and predicting for fold {fold}")
-        train_feather = pd.read_feather(os.path.join(model_config.output_dir, f"train_fold_{fold}.feather"))
-        valid_feather = pd.read_feather(os.path.join(model_config.output_dir, f"valid_fold_{fold}.feather"))
+        train_feather = pd.read_feather(os.path.join(model_config.output, f"train_fold_{fold}.feather"))
+        valid_feather = pd.read_feather(os.path.join(model_config.output, f"valid_fold_{fold}.feather"))
 
         xtrain = train_feather[model_config.features]
         xvalid = valid_feather[model_config.features]
 
-        valid_ids = valid_feather[model_config.id_column].values
+        valid_ids = valid_feather[model_config.idx].values
 
         if model_config.test_filename is not None:
-            test_feather = pd.read_feather(os.path.join(model_config.output_dir, f"test_fold_{fold}.feather"))
+            test_feather = pd.read_feather(os.path.join(model_config.output, f"test_fold_{fold}.feather"))
             xtest = test_feather[model_config.features]
-            test_ids = test_feather[model_config.id_column].values
+            test_ids = test_feather[model_config.idx].values
 
-        ytrain = train_feather[model_config.target_cols].values
-        yvalid = valid_feather[model_config.target_cols].values
+        ytrain = train_feather[model_config.targets].values
+        yvalid = valid_feather[model_config.targets].values
 
         model = xgb_model(
             random_state=model_config.seed,
@@ -263,7 +263,7 @@ def predict_model(model_config, best_params):
             ypred = []
             test_pred = []
             trained_models = []
-            for idx in range(len(model_config.target_cols)):
+            for idx in range(len(model_config.targets)):
                 _m = copy.deepcopy(model)
                 _m.fit(
                     xtrain,
@@ -289,7 +289,7 @@ def predict_model(model_config, best_params):
             joblib.dump(
                 trained_models,
                 os.path.join(
-                    model_config.output_dir,
+                    model_config.output,
                     f"axgb_model.{fold}",
                 ),
             )
@@ -306,7 +306,7 @@ def predict_model(model_config, best_params):
             joblib.dump(
                 model,
                 os.path.join(
-                    model_config.output_dir,
+                    model_config.output,
                     f"axgb_model.{fold}",
                 ),
             )
