@@ -279,13 +279,16 @@ def predict_model(model_config, best_params):
                         test_pred_temp = _m.predict(xtest)
                 else:
                     ypred_temp = _m.predict_proba(xvalid)[:, 1]
-                    test_pred_temp = _m.predict_proba(xtest)[:, 1]
+                    if model_config.test_filename is not None:
+                        test_pred_temp = _m.predict_proba(xtest)[:, 1]
 
                 ypred.append(ypred_temp)
-                test_pred.append(test_pred_temp)
+                if model_config.test_filename is not None:
+                    test_pred.append(test_pred_temp)
 
             ypred = np.column_stack(ypred)
-            test_pred = np.column_stack(test_pred)
+            if model_config.test_filename is not None:
+                test_pred = np.column_stack(test_pred)
             joblib.dump(
                 trained_models,
                 os.path.join(
