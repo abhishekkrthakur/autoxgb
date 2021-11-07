@@ -1,28 +1,27 @@
+import os
 from setuptools import find_packages, setup
 
 
-with open("README.md") as f:
-    long_description = f.read()
+ROOT_PATH = os.path.dirname(os.path.abspath(__file__))
 
-INSTALL_REQUIRES = [
-    "fastapi==0.70.0",
-    "loguru==0.5.3",
-    "numpy==1.21.3",
-    "optuna==2.10.0",
-    "pyarrow==6.0.0",
-    "pydantic==1.8.2",
-    "joblib==1.1.0",
-    "pandas==1.3.4",
-    "scikit-learn==1.0.1",
-    "uvicorn==0.15.0",
-    "xgboost==1.5.0",
-]
+def _parse_requirements(path):
+  with open(os.path.join(ROOT_PATH, path)) as f:
+    return [
+        line.rstrip()
+        for line in f
+        if not (line.isspace() or line.startswith('#'))
+    ]
+
+def _parse_long_description():
+  with open(os.path.join(ROOT_PATH, 'README.md')) as f:
+    return f.read()
+
 
 if __name__ == "__main__":
     setup(
         name="autoxgb",
         description="autoxgb: tuning xgboost with optuna",
-        long_description=long_description,
+        long_description=_parse_long_description(),
         long_description_content_type="text/markdown",
         author="Abhishek Thakur",
         author_email="abhishek4@gmail.com",
@@ -32,7 +31,7 @@ if __name__ == "__main__":
         packages=find_packages("src"),
         entry_points={"console_scripts": ["autoxgb=autoxgb.cli.autoxgb:main"]},
         include_package_data=True,
-        install_requires=INSTALL_REQUIRES,
+        install_requires=_parse_requirements('requirements.txt'),
         platforms=["linux", "unix"],
         python_requires=">=3.6",
     )
