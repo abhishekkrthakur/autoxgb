@@ -12,8 +12,8 @@ def _parse_requirements(path):
         if not (line.isspace() or line.startswith('#'))
     ]
 
-def _parse_long_description():
-  with open(os.path.join(ROOT_PATH, 'README.md')) as f:
+def _parse_long_description(path):
+  with open(os.path.join(ROOT_PATH, path)) as f:
     return f.read()
 
 
@@ -21,7 +21,7 @@ if __name__ == "__main__":
     setup(
         name="autoxgb",
         description="autoxgb: tuning xgboost with optuna",
-        long_description=_parse_long_description(),
+        long_description=_parse_long_description('README.md'),
         long_description_content_type="text/markdown",
         author="Abhishek Thakur",
         author_email="abhishek4@gmail.com",
