@@ -5,6 +5,7 @@ import numpy as np
 from sklearn import metrics as skmetrics
 
 from .enums import ProblemType
+import copy
 
 
 @dataclass
@@ -33,6 +34,7 @@ class Metrics:
                 "mse": skmetrics.mean_squared_error,
                 "mae": skmetrics.mean_absolute_error,
                 "rmse": partial(skmetrics.mean_squared_error, squared=False),
+                "rmsle": partial(skmetrics.mean_squared_log_error, squared=False),
             }
         elif self.problem_type == ProblemType.multi_label_classification:
             self.valid_metrics = {
@@ -57,5 +59,10 @@ class Metrics:
                 else:
                     metrics[metric_name] = metric_func(y_true, y_pred)
             else:
-                metrics[metric_name] = metric_func(y_true, y_pred)
+                if metric_name == "rmsle":
+                    temp_pred = copy.deepcopy(y_pred)
+                    temp_pred[temp_pred < 0] = 0
+                    metrics[metric_name] = metric_func(y_true, temp_pred)
+                else:
+                    metrics[metric_name] = metric_func(y_true, y_pred)
         return metrics
