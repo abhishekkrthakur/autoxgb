@@ -213,6 +213,46 @@ def train_model(model_config):
     study.optimize(optimize_func, n_trials=model_config.num_trials, timeout=model_config.time_limit)
     return study.best_params
 
+def table_cutout(df, features_columns, iters=1, p=1.0, max_drop_cols_pct=0.3):
+    from tqdm import tqdm
+    import functools
+
+    def process_once(dfx):
+        other_cols = [col for col in dfx.columns if col not in features_columns]
+        other_data = dfx.loc[:, other_cols]
+        
+        # TODO: use multiprocessing
+        for idx, row in tqdm(dfx.iterrows(), leave=False, total=len(dfx)):
+            if np.random.random() > p: continue
+            # select columns for cutout
+            dropout_cols = np.random.choice(features_columns, int(ncols * np.random.uniform(0, max_drop_cols_pct)))
+            for dcol in dropout_cols:
+                dfx.loc[idx, dcol] = np.nan
+
+        dfx.loc[:, other_cols] = other_data
+        return dfx
+        
+    dflist = []
+    ncols = len(features_columns)
+    max_drop_cols = int(ncols * max_drop_cols_pct)
+    
+    for _ in tqdm(range(iters)):
+        dfx = process_once(df.copy())
+        dflist.append(dfx)
+    
+    final_df = pd.concat(dflist).reset_index(drop=True)
+    final_df = final_df[~final_df.duplicated()].reset_index(drop=True)  # remove duplicate columns
+    
+    max_dropout_per_row = {i:1 if i<=max_drop_cols else 0 for i in range(final_df.shape[1])}  # {num_nans:retain_probability}
+    if max_drop_cols > 0:
+        masks = [
+            np.logical_and(final_df.isnull().sum(axis=1) == k, np.random.random(len(final_df))>1-v)
+            for k,v in max_dropout_per_row.items()
+        ]
+        final_df = final_df[functools.reduce(np.logical_or, masks)].reset_index(drop=True)
+    
+    print('Volume Boost:', len(final_df) / len(df), '\n')
+    return final_df 
 
 def predict_model(model_config, best_params):
 
@@ -238,6 +278,9 @@ def predict_model(model_config, best_params):
         logger.info(f"Training and predicting for fold {fold}")
         train_feather = pd.read_feather(os.path.join(model_config.output, f"train_fold_{fold}.feather"))
         valid_feather = pd.read_feather(os.path.join(model_config.output, f"valid_fold_{fold}.feather"))
+
+        if model_config.dropout_iters > 0:
+            train_feather = table_cutout(train_feather, model_config.features, iters=model_config.dropout_iters, p=1.0, max_drop_cols_pct=0.3)
 
         xtrain = train_feather[model_config.features]
         xvalid = valid_feather[model_config.features]

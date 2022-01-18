@@ -20,3 +20,4 @@ class ModelConfig(BaseModel):
     num_trials: int
     time_limit: Optional[int] = None
     fast: bool
+    dropout_iters: int

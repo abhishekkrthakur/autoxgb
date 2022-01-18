@@ -34,6 +34,7 @@ class AutoXGB:
     num_trials: Optional[int] = 1000
     time_limit: Optional[int] = None
     fast: Optional[bool] = False
+    dropout_iters: Optional[int] = 2
 
     def __post_init__(self):
         if os.path.exists(self.output):
@@ -231,6 +232,7 @@ class AutoXGB:
         model_config["num_trials"] = self.num_trials
         model_config["time_limit"] = self.time_limit
         model_config["fast"] = self.fast
+        model_config["dropout_iters"] = self.dropout_iters
 
         self.model_config = ModelConfig(**model_config)
         logger.info(f"Model config: {self.model_config}")
