@@ -214,7 +214,7 @@ def train_model(model_config):
     return study.best_params
 
 def table_cutout(df, features_columns, iters=1, p=1.0, max_drop_cols_pct=0.3):
-    from tqdm import tqdm
+    from tqdm.auto import tqdm
     import functools
 
     def process_once(dfx):
@@ -222,7 +222,7 @@ def table_cutout(df, features_columns, iters=1, p=1.0, max_drop_cols_pct=0.3):
         other_data = dfx.loc[:, other_cols]
         
         # TODO: use multiprocessing
-        for idx, row in tqdm(dfx.iterrows(), leave=False, total=len(dfx)):
+        for idx, row in dfx.iterrows():
             if np.random.random() > p: continue
             # select columns for cutout
             dropout_cols = np.random.choice(features_columns, int(ncols * np.random.uniform(0, max_drop_cols_pct)))
