@@ -242,9 +242,10 @@ class AutoXGB:
         joblib.dump(categorical_encoders, f"{self.output}/axgb.categorical_encoders")
         joblib.dump(target_encoder, f"{self.output}/axgb.target_encoder")
 
-    def train(self):
+    def train(self, best_params=None):
         self._process_data()
-        best_params = train_model(self.model_config)
+        if best_params is None:
+            best_params = train_model(self.model_config)
         logger.info("Training complete")
         self.predict(best_params)
 
