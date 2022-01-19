@@ -254,7 +254,7 @@ def table_cutout(df, features_columns, iters=1, p=1.0, max_drop_cols_pct=0.3):
     print('Volume Boost:', len(final_df) / len(df), '\n')
     return final_df
 
-def data_aug_func(train_df, model_config):
+def data_aug_func(train_df, model_config, fold_idx):
     df = table_cutout(train_df, model_config.features, iters=5, p=1.0, max_drop_cols_pct=0.3)
     return df
 
@@ -284,7 +284,7 @@ def predict_model(model_config, best_params):
         valid_feather = pd.read_feather(os.path.join(model_config.output, f"valid_fold_{fold}.feather"))
 
         if model_config.data_aug_func is not None:
-            train_feather = model_config.data_aug_func(train_feather, model_config)
+            train_feather = model_config.data_aug_func(train_feather, model_config, fold)
 
         xtrain = train_feather[model_config.features]
         xvalid = valid_feather[model_config.features]

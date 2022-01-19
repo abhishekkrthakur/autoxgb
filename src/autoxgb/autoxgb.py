@@ -33,7 +33,7 @@ class AutoXGB:
     num_trials: Optional[int] = 1000
     time_limit: Optional[int] = None
     fast: Optional[bool] = False
-    data_aug_func: Optional[Callable[[pd.DataFrame, 'ModelConfig'], pd.DataFrame]] = data_aug_func
+    data_aug_func: Optional[Callable[[pd.DataFrame, 'ModelConfig', int], pd.DataFrame]] = data_aug_func
 
     def __post_init__(self):
         if os.path.exists(self.output):
