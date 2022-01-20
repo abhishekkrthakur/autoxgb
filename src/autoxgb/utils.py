@@ -213,6 +213,53 @@ def train_model(model_config):
     study.optimize(optimize_func, n_trials=model_config.num_trials, timeout=model_config.time_limit)
     return study.best_params
 
+def table_cutout(df, features_columns, iters=1, p=1.0, max_drop_cols_pct=0.3):
+    from tqdm.auto import tqdm
+    import functools
+
+    def process_once(dfx):
+        other_cols = [col for col in dfx.columns if col not in features_columns]
+        other_data = dfx.loc[:, other_cols]
+        
+        def process_row(row):
+            if np.random.random() > p:
+                return row
+            dropout_cols = np.random.choice(features_columns, max(1, int(ncols * np.random.uniform(0, max_drop_cols_pct))))
+            for dcol in dropout_cols:
+                row[dcol] = np.nan
+            return row
+
+        dfx = dfx.apply(process_row, axis=1)
+        dfx.loc[:, other_cols] = other_data
+        return dfx
+        
+    dflist = [df]
+    ncols = len(features_columns)
+    max_drop_cols = int(ncols * max_drop_cols_pct)
+    
+    for _ in tqdm(range(iters)):
+        dfx = process_once(df.copy())
+        dflist.append(dfx)
+    
+    final_df = pd.concat(dflist).reset_index(drop=True)
+    duplucated = final_df.duplicated()
+    print(f'Removing {duplucated.sum()} duplicates.')
+    final_df = final_df[~duplucated].reset_index(drop=True)  # remove duplicate columns
+    
+    max_dropout_per_row = {i:1 if i<=max_drop_cols else 0 for i in range(final_df.shape[1])}  # {num_nans:retain_probability}
+    if max_drop_cols > 0:
+        masks = [
+            np.logical_and(final_df.isnull().sum(axis=1) == k, np.random.random(len(final_df))>1-v)
+            for k,v in max_dropout_per_row.items()
+        ]
+        final_df = final_df[functools.reduce(np.logical_or, masks)].reset_index(drop=True)
+    
+    print('Volume Boost:', len(final_df) / len(df), '\n')
+    return final_df
+
+def data_aug_func(train_df, model_config, fold_idx):
+    df = table_cutout(train_df, model_config.features, iters=5, p=1.0, max_drop_cols_pct=0.3)
+    return df
 
 def predict_model(model_config, best_params):
 
@@ -238,6 +285,9 @@ def predict_model(model_config, best_params):
         logger.info(f"Training and predicting for fold {fold}")
         train_feather = pd.read_feather(os.path.join(model_config.output, f"train_fold_{fold}.feather"))
         valid_feather = pd.read_feather(os.path.join(model_config.output, f"valid_fold_{fold}.feather"))
+
+        if model_config.data_aug_func is not None:
+            train_feather = model_config.data_aug_func(train_feather, model_config, fold)
 
         xtrain = train_feather[model_config.features]
         xvalid = valid_feather[model_config.features]

@@ -1,6 +1,6 @@
 import os
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Callable
 
 import joblib
 import numpy as np
@@ -12,8 +12,7 @@ from sklearn.utils.multiclass import type_of_target
 from .enums import ProblemType
 from .logger import logger
 from .schemas import ModelConfig
-from .utils import predict_model, reduce_memory_usage, train_model
-
+from .utils import predict_model, reduce_memory_usage, train_model, data_aug_func
 
 @dataclass
 class AutoXGB:
@@ -34,6 +33,7 @@ class AutoXGB:
     num_trials: Optional[int] = 1000
     time_limit: Optional[int] = None
     fast: Optional[bool] = False
+    data_aug_func: Optional[Callable[[pd.DataFrame, 'ModelConfig', int], pd.DataFrame]] = data_aug_func
 
     def __post_init__(self):
         if os.path.exists(self.output):
@@ -231,6 +231,7 @@ class AutoXGB:
         model_config["num_trials"] = self.num_trials
         model_config["time_limit"] = self.time_limit
         model_config["fast"] = self.fast
+        model_config["data_aug_func"] = self.data_aug_func
 
         self.model_config = ModelConfig(**model_config)
         logger.info(f"Model config: {self.model_config}")
@@ -242,9 +243,10 @@ class AutoXGB:
         joblib.dump(categorical_encoders, f"{self.output}/axgb.categorical_encoders")
         joblib.dump(target_encoder, f"{self.output}/axgb.target_encoder")
 
-    def train(self):
+    def train(self, best_params=None):
         self._process_data()
-        best_params = train_model(self.model_config)
+        if best_params is None:
+            best_params = train_model(self.model_config)
         logger.info("Training complete")
         self.predict(best_params)
 
