@@ -221,18 +221,19 @@ def table_cutout(df, features_columns, iters=1, p=1.0, max_drop_cols_pct=0.3):
         other_cols = [col for col in dfx.columns if col not in features_columns]
         other_data = dfx.loc[:, other_cols]
         
-        # TODO: use multiprocessing
-        for idx, row in dfx.iterrows():
-            if np.random.random() > p: continue
-            # select columns for cutout
-            dropout_cols = np.random.choice(features_columns, int(ncols * np.random.uniform(0, max_drop_cols_pct)))
+        def process_row(row):
+            if np.random.random() > p:
+                return row
+            dropout_cols = np.random.choice(features_columns, max(1, int(ncols * np.random.uniform(0, max_drop_cols_pct))))
             for dcol in dropout_cols:
-                dfx.loc[idx, dcol] = np.nan
+                row[dcol] = np.nan
+            return row
 
+        dfx = dfx.apply(process_row, axis=1)
         dfx.loc[:, other_cols] = other_data
         return dfx
         
-    dflist = []
+    dflist = [df]
     ncols = len(features_columns)
     max_drop_cols = int(ncols * max_drop_cols_pct)
     
@@ -241,7 +242,9 @@ def table_cutout(df, features_columns, iters=1, p=1.0, max_drop_cols_pct=0.3):
         dflist.append(dfx)
     
     final_df = pd.concat(dflist).reset_index(drop=True)
-    final_df = final_df[~final_df.duplicated()].reset_index(drop=True)  # remove duplicate columns
+    duplucated = final_df.duplicated()
+    print(f'Removing {duplucated.sum()} duplicates.')
+    final_df = final_df[~duplucated].reset_index(drop=True)  # remove duplicate columns
     
     max_dropout_per_row = {i:1 if i<=max_drop_cols else 0 for i in range(final_df.shape[1])}  # {num_nans:retain_probability}
     if max_drop_cols > 0:
