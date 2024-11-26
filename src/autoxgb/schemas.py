@@ -1,8 +1,9 @@
-from typing import List, Optional
+from typing import List, Optional, Callable
 
 from pydantic import BaseModel
 
 from .enums import ProblemType
+import pandas as pd
 
 
 class ModelConfig(BaseModel):
@@ -20,3 +21,5 @@ class ModelConfig(BaseModel):
     num_trials: int
     time_limit: Optional[int] = None
     fast: bool
+    data_aug_func: Optional[Callable[[pd.DataFrame, 'ModelConfig', int], pd.DataFrame]] = None
+    
